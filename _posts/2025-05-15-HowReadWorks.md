@@ -1,1 +1,1 @@
-![示例图片](/images/read.png)
+![示例图片](/yougongdeyu.github.io/images/read.png)
