@@ -1,1 +1,1 @@
-![示例图片](/images/read.png)
+![示例图片](/image/read.png)
