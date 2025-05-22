@@ -1,6 +1,6 @@
 ## cpu是如何工作的
 ### cpu有哪些模块
-[cpu结构](/image/cpu/CPUStructure.png)
+![cpu结构](/image/cpu/CPUStructure.png)
 
 控制器
 运算器
