@@ -165,7 +165,7 @@ SP（Stack Pointer，栈指针）是一个专用寄存器，用来标记当前�
 
 ## 那操作系统切换线程呢，为啥不能重用中断。
 方法 < 中断 < 线程切换   要处理的cpu上下文数据量
-[WhyCannotReuseInter](/image/cpu/WhyCannotReuseInter.png)
+![WhyCannotReuseInter](/image/cpu/WhyCannotReuseInter.png)
 
 ## 操作系统维护的线程的 cpu上下文存在哪里？是不是对线程的定义的地方保存着，操作系统取维护
 
@@ -270,23 +270,23 @@ CPU提供指令支持（如 CALL、RET）简化函数调用，但不自动保存
  ## jvm 如何用多线程的，等于是在一个进程里面用了多个cpu核心，操作系统如何支持这种行为的。
 
 ## class在jvm里面被消费的流程
-[howClassWorksInJVM](/image/cpu/howClassWorksInJVM.png)
+![howClassWorksInJVM](/image/cpu/howClassWorksInJVM.png)
 ### jvm解释执行字节码，那解释后是放在进程模型的.text段？
 .text 段是 操作系统加载 ELF 或 PE 等二进制可执行文件时，包含静态机器码的内存段。而解释执行不会生成静态机器码，也就不会写入 .text 段。
 其实既然执行的是.text段代码，那.text段可以自己再包装一层啊，包装一层去消费字节码。就跟写代码一样一样的。所以这里的解释器其实就是C/C++ 编写的解释器循环读取并执行。
-[JVMInterpreter](/image/cpu/JVMInterpreter.png)
-[JVMInterpreter](/image/cpu/JVMINterpreter2.png)
+![JVMInterpreter](/image/cpu/JVMInterpreter.png)
+![JVMInterpreter](/image/cpu/JVMINterpreter2.png)
 ### 就是说jvm本身就是.text段的程序
-[JVMInterpreter](/image/cpu/WhereIsClass.png)
+![JVMInterpreter](/image/cpu/WhereIsClass.png)
 
 解释器本身是 JVM 的一部分，是编译后放在 .text 段中的可执行代码。
 字节码保存在：不是 .text，而是 .data 或匿名映射（anonymous mmap 区域）。
 
 ## 那类加载器的作用是什么，在哪部分，什么时候运行
-[ClassLoader](/image/cpu/ClassLoader.png)
+![ClassLoader](/image/cpu/ClassLoader.png)
 
  ## 那其实就是说class也不都是一次全部加入内存，而是跟操作系统执行代码一样，也不是全部加载，而是缺页的时候再从磁盘加载到内存，同样道理，class模拟了这种行为
-[DesignPatternOfCLassloader](/image/cpu/DesignPatternOfCLassloader.png)
+![DesignPatternOfCLassloader](/image/cpu/DesignPatternOfCLassloader.png)
  你看又是同样的思想，其实就是嵌套的思想。阴生阳，阳生阴。阴阳其实也是一种配合。
 
 ## 类加载器性能怎么样？
@@ -300,16 +300,16 @@ execve功能是把c语言编译的东西放到操作系统的内存模型里面�
  ### c语言编译的代码是什么样的，从cpu执行的角度分析下，比如比如cpu 的指令cache，什么时候从磁盘进入内存，什么时候从内存进入cache
 C 源码 --(编译)--> 机器码(ELF等格式) --(操作系统加载)--> 内存 --(CPU预取/Cache命中)--> 指令Cache --(CPU执行)
 编译生成 ELF文件，不同的架构，指令集，内存大小，都不一样。
-[ELF和cpu](/image/cpu/CCodeAndCpu.png)
-[ELF和cpu](/image/cpu/CCodeAndCacheAndDisk.png)
+![ELF和cpu](/image/cpu/CCodeAndCpu.png)
+![ELF和cpu](/image/cpu/CCodeAndCacheAndDisk.png)
 #### ELF文件结构以及跟cpu和操作系统关系？
 
-[ELF和cpu](/image/cpu/ELF.png)
-[ELF和cpu](/image/cpu/ELF2.png)
-[ELF和cpu](/image/cpu/ELF3.png)
-[ELF和cpu](/image/cpu/ELF4.png)
-[ELF 和操作系统](/image/cpu/ELF5.png)
-[ELF 和操作系统](/image/cpu/ELF6.png)
+![ELF和cpu](/image/cpu/ELF.png)
+![ELF和cpu](/image/cpu/ELF2.png)
+![ELF和cpu](/image/cpu/ELF3.png)
+![ELF和cpu](/image/cpu/ELF4.png)
+![ELF 和操作系统](/image/cpu/ELF5.png)
+![ELF 和操作系统](/image/cpu/ELF6.png)
 其实 就是说操作系统抽象了一个内存模型，比如堆栈，堆，数据段，然后编译器也follow这个规则，把数据组织好，然后操作系统安排cpu消费这些数据。
 或者说编译器组织了操作系统要的格式，操作系统加载并维护这些格式，CPU 执行这些段中的代码和数据。
 ##### 链接器是啥？
@@ -320,10 +320,10 @@ C 源码 --(编译)--> 机器码(ELF等格式) --(操作系统加载)--> 内存 
 不是的，启动的时候映射好，操作系统比如execve执行代码前加载到内存的也是一部分而已，然后后续cpu缓存会硬件访存，物理内存里面没有也会自己访问磁盘
 
 使程序本身很大，比如 10MB 或更多，操作系统在加载时也不是一次性把它全部读入内存，而是采用了按需加载（lazy loading）+ 分页机制来高效管理内存使用。
-[page fault Exception](/image/cpu/pageException.png)
+![page fault Exception](/image/cpu/pageException.png)
 #### 页错误机制 性能有多快
 虚拟内存映射
-[VirtualMemoryMap](/image/cpu/VirtualMemoryMap.png)
+![VirtualMemoryMap](/image/cpu/VirtualMemoryMap.png)
 所访问的虚拟页已经映射在某个内存中，比如共享内存或文件映射中: 几百纳秒 ~ 几微秒。
 严重页错误：几十微秒到几百微秒
 
