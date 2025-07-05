@@ -28,8 +28,8 @@ syscall是一个指令，用于产生软中断。
 系统调用号是数组下标，中断向量号是对应下标的数组元素的value，这个数组是内核维护的中断向量表
 read是lib提供给系统调用号另起的一个名字。
 
-[syscall号1](/image/syscall2.png)
-[syscall号2](/image/syscall.png)
+![syscall号1](/image/syscall2.png)
+![syscall号2](/image/syscall.png)
 
 ## linux 除了内核别的service怎么提供服务？
 那就设计到进程通信了这些，或者tcp 这些了
@@ -44,6 +44,8 @@ read是lib提供给系统调用号另起的一个名字。
 
 
 ## 锁是什么
+
+锁就是一个对一个变量的原子操作，以与之关联的逻辑，得到锁，全部执行，得不到就等着。
 
 
 

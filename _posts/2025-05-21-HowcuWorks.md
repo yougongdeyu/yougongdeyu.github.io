@@ -75,6 +75,11 @@ c = a + b 这行代码是如何工作的
 
 ## cpu中断会自动保存上下文，
 
+## 那如何cpu如何栈的大小呢？
+
+CPU 并不知道栈的大小，只是根据 SP 机械地读写内存。
+栈的大小和范围由操作系统或程序员在内存中划定，若访问越界，后果需自己承担。
+
  ## 保存哪些内容
 除了cache不保存，其他都保存，比如寄存器，计数器。
 
@@ -84,6 +89,12 @@ c = a + b 这行代码是如何工作的
 
 ## 响应中断是什么时候
 在指令执行完指令之后相应
+
+### 我想控制cpu从某个指令开始执行，cpu提供的指令是什么呢？？
+你这个问题已经触碰到 “程序控制权转移” 的核心原理了！
+要让 CPU 从某个指令开始执行，本质上是修改 程序计数器（PC，Program Counter） 的值。
+那操作系统多线程做的事情其实就是设定cpu上下文，无论是入栈还是出栈，然后操作程序计数器就可以了
+ 完全正确
 
 
 ## 调度器如何进行线程切换的  我想控制cpu从某个指令开始执行，cpu提供的指令是什么呢？？
@@ -95,9 +106,26 @@ c = a + b 这行代码是如何工作的
 ## 调度器的调度工作是如何执行的，依附于某个cpu核心，专门调度工作么？
 每个cpu核心都有一个内核调度器，cpu通过中断或者定时器来调度
 
+## 那如果两核cpu，会同时执行调度器么？
+✅ 是的！多核 CPU 上的每个核心都可以“同时执行调度器”代码。
+但要注意：
+虽然调度器逻辑可以同时运行在多个核心上，但它们之间是高度同步和互斥的，以保证不会发生资源竞争或数据错误。
+
+## 。调度器支持并发运行，并通过局部就绪队列和锁机制保证运行正确。这个我不是太懂，你是说跟数据库的锁哈希桶一样么？可以有多个查询执行，但是因为有锁的机制，保证了如果锁冲突，就阻塞等待
+
+
+![HowTaskControllerWorks](/image/cpu2/HowTaskControllerWorks.png)
+![HowTaskControllerWorks2](/image/cpu2/HowTaskControllerWorks2.png)
+
+
+## 内核态和用户态切换除了时cpu的一个设置或者标志位外，还有哪些操作，我理解应该是要切换cpu上下文去执行内核里面的事情了。而这个执行
+不是简单的切换下pc指针就好了的。还有更多的操作。
+
+
 ## 切换cpu上下文，和操作系统上下文  
 这个上下文的差别
 
+### 那操作系统如何维护用户线程和操作系统维护cpu调度的程序？
 
 
 ## 并发问题发生在指令周期还是指令指令之间
@@ -106,6 +134,11 @@ c = a + b 这行代码是如何工作的
 如果这三个指令不能被打断，那不就可以高层抽线成锁了。
 ## 那其实调度器的功能并不复杂，耗时也很小，也保证了用户线程的高可用
 
+## 那操作系统除了调度器还有什么功能呢？
+TheCoreFunctionOfOS.png
+![TheCoreFunctionOfOS](/image/cpu2/TheCoreFunctionOfOS.png)
+![TheCoreFunctionOfOS2](/image/cpu2/TheCoreFunctionOfOS2.png)
+![TheCoreFunctionOfOS3](/image/cpu2/TheCoreFunctionOfOS3.png)
 
 # cpu提供哪些原子指令 使得操作系统可以高层封装成锁
 XCHG reg, mem
@@ -207,10 +240,21 @@ ai给的你可以把 JVM 方法栈理解为 JVM 自己维护的一套“虚拟�
 用来存放该线程调用过程中的栈帧（局部变量、返回地址、保存的寄存器等）；
 
 栈顶地址会设置到 SP（Stack Pointer）寄存器。
+指定程序计数器 PC， 然后执行排队等着被执行就行了
 
 简单的很
+![Pthread](/image/cpu2/Pthread.png)
+![Pthread2](/image/cpu2/Pthread2.png)
 
+##  pthread会创建本地方法栈， 那跟jvm的内存模型的关系是啥，本地方法栈是物理内存区域，这个区域里面受jvm管理么？
+受，jvm classloader 下，然后loader到方法区里面里面，也会被管理。
+需要注意的是里面的本地方法栈其实是不怎么存在的，没有物理区分，知识逻辑区分。物理上都是同一块连续的内存区域。
+![JVMMemory0](/image/cpu2/JVMMemory0.png)
+![xx1jmvMemory1](/image/cpu2/jmvMemory1.png)
+xx
+![JVMMemory](/image/cpu2/JVMMemory.png)
  ## SP就跟cpu裸跑的时候是什么样，是跟中断处理那个cpu上线文保存的栈顶指针一个东西么？
+ 那就是说中断嵌套下的sp行为和线程里面方法调用栈，其实是一个机制
  单品机里面的方法调用又栈这个东西么？
 
 
@@ -227,17 +271,22 @@ ai给的你可以把 JVM 方法栈理解为 JVM 自己维护的一套“虚拟�
 
 
 操作系统通过 execve() 把 ELF 文件从 磁盘读取到内存, 然后就可以执行了。
-
+![HowCWorks](/image/cpu2/HowCWorks.png)
+![HowCWorks2](/image/cpu2/HowCWorks2.png)
+![HowCWorks3](/image/cpu2/HowCWorks3.png)
 
 ## 如果程序很大，比如10m，也是一次加入到内存么？
 不是的， 每个进程都有自己的虚拟地址，靠的页错误机制，都有一个2g的内存， 映射了，但是如果访问的时候没有加载到内存，mmu会自己加载的，
 这个对开发人员是透明的，时间也很短暂，
+![](/image/cpu2/HowCodeLoaded.png)
 ## 页错误机制 性能有多快
 几百纳秒到几微秒，严重的页错误ssd几十微秒到几百微秒，机械的话几毫秒甚至更长，并且又内存锁定和预热机制。比如db了，jvm都会这么干。
 
+## 页错误机制和cpu缓存，什么三级缓存的关系是啥？
+![](/image/cpu2/cacheAndPage.png)
 ## jvm full jc 的性能？
 几十到几百毫秒，所以操作系统的性能是最快的，运行在之上的程序都稍差一点，像jvm。
-
+![](/image/cpu2/HowMuchJvmFullGCCostTime.png)
 
 
 ## 那比如一个library，我只用到里面的一个方法，那cpu执行的时候是 把整个library代码加载进来么？
@@ -248,7 +297,7 @@ ai给的你可以把 JVM 方法栈理解为 JVM 自己维护的一套“虚拟�
 剩下 99% 的代码根本不会加载，更不会占用 CPU cache。
 
 
-## 
+
 
 
 必要的 .text（指令段）、.data（初始化数据段）
@@ -377,8 +426,66 @@ C 源码 --(编译)--> 机器码(ELF等格式) --(操作系统加载)--> 内存 
 
 ## java
 
+
+### 比如java里面定义一个变量，有时候是常量，那对应到cpu上，cpu怎么知道什么时候存栈上，什么时候存堆上
+ 那 CPU 是如何知道这个变量来自“栈”还是“堆”的？
+ CPU 本身并不知道“变量”这种高级概念。**它只知道“这个地址该读/该写”。而这些地址，是编译/JIT 之后告诉它的：
+ ### 就是说cpu提供了直接访问，和间接访问的指令，然后jvm就可以自定义内存了
+ ![HowJvmDefineVariables](/image/cpu2/HowJvmDefineVariables.png)
+
+### 那局部变量在栈里面分配，这个是谁决定的，cpu自己的行为？
+并不是 CPU 自己决定的，而是 编译器或虚拟机（如 JVM） 决定的。
+![HowJvmDefineVariables2](/image/cpu2/HowJvmDefineVariables2.png)
  ## java用了多少条指令，x86有多少条指令。
 java 有200多一点点指令
 
 ## 还有之前哪个jvm线程模型映射到操作系统内存模型，应该之前理解不太对。不应该是这样，jvm是解释执行的，代码不在.text里面，哦不对，那是方法栈。方法栈是映射了的。
 
+### 我的意思是中断时保存了cpu上下文然后继续执行，那么线程的切换为啥不能采用类似中断的方式
+
+![CPUInterrepterAndThreadCHanging](/image/cpu2/CPUInterrepterAndThreadCHanging.png)
+
+
+### 中断去执行别的任务，如果任务重，那不是把cpu的上下文全换了一边么，那中断只保存很小一部分内容不会出问题么？
+![WhyCannotChangingThreadASWhatInterrepterDo](/image/cpu2/WhyCannotChangingThreadASWhatInterrepterDo.png)
+![WhyCannotChangingThreadASWhatInterrepterDo2](/image/cpu2/WhyCannotChangingThreadASWhatInterrepterDo2.png)
+
+
+### 如果时单片机的中断处理函数很重，那不是有问题了？
+制作
+![IfDoHeavyTaskInInterrept](/image/cpu2/IfDoHeavyTaskInInterrept.png)
+![IfDoHeavyTaskInInterrept2](/image/cpu2/IfDoHeavyTaskInInterrept2.png)
+
+
+### cpu 发展里面发展的啥啊，晶体管数量多在那一部分，alu，cache,还是控制器 比如发布会说某芯片有多少晶体管，其实主要是说cache有多少，其他比如alu cu都是很少，或者说正常范围内增长
+
+### 厂商宣传“千亿晶体管”时，主要体现的是Cache的扩张（比如AMD EPYC的256MB L3缓存，或苹果M系列的统一内存架构）
+![CPUFuture.png](/image/cpu2/CPUFuture.png)
+
+### 进程和线程在操作系统层面的区别，为啥一个时资源的最小单位，一个时cpu的的最小单位？
+
+
+### 那并发修改一个变量，是什么时候导致的问题，线程切换，还是cpu上下文切换
+这不是线程切换本身的问题，也不是上下文切换本身的问题，而是它们导致了“多个线程几乎同时访问同一个变量”的情形。
+
+
+
+### 多线程访问同一个变量在cpu层面是什么现象，假如是单核会有并发问题么？
+单核 CPU 也可能存在并发问题！
+
+ - 因为即使只有一个核心，操作系统仍然会线程切换。
+
+ - 线程之间在不同时间片内抢占执行，同样可能访问并修改同一个变量。
+
+
+
+
+
+WhyCannotChangingThreadASWhatInterrepterDo2.png
+
+协程是怎么工作的，编程范式，cpu的晶体管用在了哪里。
+
+java class在jvm内存模型里面的哪里被放置，被消费逻辑是什么样的。
+
+
+java里面除了线程，为啥不能搞个协程呢，这样更能提升性能，而不是只能线程。
