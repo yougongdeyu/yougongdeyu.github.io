@@ -485,7 +485,47 @@ WhyCannotChangingThreadASWhatInterrepterDo2.png
 
 协程是怎么工作的，编程范式，cpu的晶体管用在了哪里。
 
-java class在jvm内存模型里面的哪里被放置，被消费逻辑是什么样的。
+## java class在jvm内存模型里面的哪里被放置，被消费逻辑是什么样的。
+前面介绍有，加载验证之后是在 方法区里面，也会被gc c，但是策略不一样而已。
 
+### 协程怎么感觉跟那个nio一样
 
 java里面除了线程，为啥不能搞个协程呢，这样更能提升性能，而不是只能线程。
+
+
+### 内核是一个长期驻留、事件驱动、可并发调度的“运行时系统” 那其实你是说这个运行时系统是被每个核心，并发跑的系统？比如时间段到了，或者中断到了，都会去跑
+么？
+
+是的！每个核都可能在不同时间点“陷入内核态”，并发执行内核代码，并且互不干扰，这就是并发：
+![HowKernelWorksInCpuCores.png](/image/cpu2/HowKernelWorksInCpuCores.png)
+![HowKernelWorksInCpuCores2.png](/image/cpu2/HowKernelWorksInCpuCores2.png)
+
+现代操作系统内核运行在所有 CPU 核上，是一个被动响应事件的运行时服务系统。每个核心在系统调用、中断、定时器等事件触发时都会“陷入内核”，并发地执行内核中的任务逻辑。这种设计让系统具备高并发、高响应、实时调度能力。
+
+## 那比如我创建read 文件，其实也是调用操作系统内核的服务么？那会落到哪个核心去做呢，落到哪个核心由谁确定呢？
+创建文件的线程或者当前程序的线程是谁，这个请求由当前线程所在的 CPU 核直接切入内核处理，哪个核来做是由调度器安排线程在哪个核上运行决定的，不是专门的线程来处理。
+
+
+## 那比如我c读取read 文件，那当前线程不是在执行我c的代码的么，内核的代码不是还没执行呢，或者说时间片还没轮到内核呢，内核怎么处理或者感知到我的read请求？
+
+其实是read也是内核静态代码，并不是一个占着cpu跑着的service。
+![HowReadWorksWithKernel.png](/image/cpu2/HowReadWorksWithKernel.png)
+### 那内核里面总会有一些一直runtime执行着的代码吧？比如pthread
+
+虽然操作系统内核是事件驱动的，但它内部确实存在大量“runtime 服务代码”，比如内核线程、定时器、中断处理逻辑等，它们常驻在内核空间，随着 CPU 核的调度、硬件事件、时间轮转等被持续唤醒执行。正是这些组件构成了内核作为“后台服务系统”的核心能力。
+
+![HowReadWorksWithKernel.png](/image/cpu2/HowCpuKernelRuntimeWorks.png)
+![HowCpuKernelRuntimeWorks1.png](/image/cpu2/HowCpuKernelRuntimeWorks1.png)
+
+
+## pthread 是怎么从用户态发起，然后被内核拉起的？”
+pthread 是通过用户态库 + 内核 clone() 协作创建的线程，参数在系统调用时设置上下文结构，何时执行由内核调度器决定。它不同于像 read() 这种立即执行的系统调用，而是等待调度器“拉起来”跑的。
+
+数据传递我理解，其实也就是商量好meta，然后这边设置，另一边按照meta读就好了，简单的访存操作而已。
+还是配合了。无论是同步主动调用内核，还是内核会异步消费，参数传递都是一个玩法套路
+meatadata 也可以用寄存器表示地址，商量好如何内容就好了。
+![HowToPastVariableIntoOS.png](/image/cpu2/HowToPastVariableIntoOS.png)
+![HowToPastVariableIntoOS1.png](/image/cpu2/HowToPastVariableIntoOS1.png)
+![HowToPastVariableIntoOS2.png](/image/cpu2/HowToPastVariableIntoOS2.png)
+
+
