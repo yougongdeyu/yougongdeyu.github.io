@@ -528,4 +528,21 @@ meatadata 也可以用寄存器表示地址，商量好如何内容就好了。
 ![HowToPastVariableIntoOS1.png](/image/cpu2/HowToPastVariableIntoOS1.png)
 ![HowToPastVariableIntoOS2.png](/image/cpu2/HowToPastVariableIntoOS2.png)
 
+### 其实内核就是剧本，每个核心都是可以访问的， 就好像唱戏的剧本一样，每家都可以唱，但是每家都有自己的人物，或者数据，但是肯定也有共有变量，肯定是通过锁控制，比如
+ 1. pthread_create() 创建线程后，它是一个可调度实体（内核的 task_struct）
+这个结构会被加入到 某个 CPU 的 runqueue（就绪队列）中。
+
+不一定是 core0。调度器可能根据负载把它均衡分配到其他核。
+
+⚠️ 在 Linux 中，每个线程创建时，调度器会调用 select_task_rq() 决定放在哪个核的调度队列。
+
+🔧 2. 每个 CPU 核有自己的就绪队列（runqueue）
+在理想状态下，各核只调度自己队列里的线程。
+
+只有在某个核空闲，而其他核任务多时，才会从其他核“偷”线程过来（work stealing / load balancing）。通过锁，防止并发问题。
+
+
+
+
+
 
