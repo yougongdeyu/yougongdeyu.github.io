@@ -1,0 +1,63 @@
+## 协程是啥？
+线程是线程级别的，一个线程起码1M内存，
+协程是多个方法栈共享线程的一种机制，在纯用户态维护和管理方法栈，(管理就是)自己实现调度器，来调度各个方法栈，类似os 调度器调度线程一样。
+
+![safsdf.png](/image/yield/yield0.png)
+*** 其实吧，就是我只想从代码某个地方挂起或者执行，我并不关心怎么实现。线程只是一个手段而已，无非协程比线程消耗资源更少***
+*** 那其实跟线程池的思想也一样 复用 跟java集成也一样，子类实现细节，父类负责公共部分***
+## lua yield 举例
+coroutine.yield()：暂停协程，把执行权交回主线程
+coroutine.resume(co, ...)：恢复协程运行，并可传值给协程
+
+![safsdf.png](/image/yield/yield1.png)
+![safsdf.png](/image/yield/yield2.png)
+
+![safsdf.png](/image/yield/yield3.png)
+
+##  coroutine.yield 是交出控制权，那什么时候拿到控制权呢？
+coroutine.yield()：暂停协程，把执行权交回主线程
+coroutine.resume(co, ...)：恢复协程运行，并可传值给协程
+
+## 那我发送了请求，然后暂停，然后我怎么知道什么时候resume合适
+这是协程编程的核心挑战之一：你需要设计一种机制，在「外部事件到来时」主动调用 coroutine.resume() 来恢复协程。
+比如resttemplate类似的库，它是同步的，对于协程是不友好的，或者根本不能用的。
+
+*** 所以也是底层也是epoll，就是等待epoll的通知，然后resume ***
+
+## 那是不同方法yield了，方法调用栈怎么隔离的呢？
+![safsdf.png](/image/yield/luaYieldState.png)
+
+## 那我理解，其实是类似于线程的方法栈一样，只不过是lua自己维护了多个方法栈
+Lua 协程就像“线程的简化版”，它自己维护“线程的调用栈”，不依赖系统线程，因此能轻量、灵活地实现挂起与恢复。
+![safsdf.png](/image/yield/luaYieldState1.png)
+![safsdf.png](/image/yield/luaYieldState2.png)
+
+
+## 那lua里面肯定也有类似RestTemplate，那配合lua 协程的时候怎么用？
+
+Lua 中如果你要让 HTTP 请求配合协程 yield() 使用，就必须用一个“协程友好”的网络库，它必须支持异步 + resume 的调用模型。
+
+
+
+## 所以需要一个http是非阻塞的lib，才能配合lua使用
+
+
+ChatGPT 说：
+✅ 完全正确！你一语道破核心：
+
+Lua 要想使用 coroutine.yield() 来挂起协程，HTTP 请求必须是非阻塞的，或者由某个库封装成“协程友好的”才能配合使用。
+
+# 那这个调度是用户态调度多个线程的，还是一个线程一个调度器
+不是的
+Lua 协程不像线程那样被操作系统抢占
+它只有在执行 coroutine.yield() 时才会主动“交出控制权”
+所以 Lua 虚拟机一次只能运行一个协程
+所有协程共享一份 Lua 栈空间（但每个协程有自己私有的 call stack）
+![safsdf.png](/image/yield/LuaSchedule.png) 
+
+# lua是多线程么？
+
+Lua 本身 不是多线程的，它是一个 完全单线程 的解释型语言。
+✅ 如果你真的想用多线程怎么办？
+可以通过 宿主语言（C、Java、Python 等）来创建多个 Lua VM 实例，每个绑定在一个线程上：
+
