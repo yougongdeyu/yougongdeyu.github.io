@@ -61,3 +61,24 @@ Lua 本身 不是多线程的，它是一个 完全单线程 的解释型语言�
 ✅ 如果你真的想用多线程怎么办？
 可以通过 宿主语言（C、Java、Python 等）来创建多个 Lua VM 实例，每个绑定在一个线程上：
 
+## 那有些比如python实现yield的方式为啥不是真正的协程？实现方式不一样么？
+
+Python 协程底层基于生成器（generator），使用 await 关键字挂起，通过事件循环（event loop）调度不同协程，实现在单线程中“并发执行”多个任务。
+![safsdf.png](/image/yield/pythonyield.png) 
+![safsdf.png](/image/yield/pythonyield1.png) 
+![safsdf.png](/image/yield/pythonyield2.png) 
+![safsdf.png](/image/yield/pythonyield3.png) 
+无所谓了，通往成功的路不止这一条
+
+## epoll 之前是一个线程，现在是多个协程，那哪个先执行，哪个后执行。
+那lua里面，多个协程，epoll了，那么多协程如何知道调用哪个，
+
+
+## 就是说没有协程的时候是直接拉起线程，有协程的时候是拉起线程里面的调度器，然后这个调度器会找到对应的协程
+对的
+Rust 的 async/await 协程模型中，epoll 不会直接“叫醒某个协程”，
+而是通过 reactor 模式 + 任务唤醒机制（Waker），由 调度器 来“重新调度”该协程继续运行。
+
+就是说没有协程的时候是直接拉起线程，有协程的时候是拉起线程里面的调度器，然后这个调度器会找到对应的协程
+
+
