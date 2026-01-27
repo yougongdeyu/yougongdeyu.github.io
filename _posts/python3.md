@@ -245,6 +245,20 @@ Exception：
             print("after response")
             return response
     Depends = 依赖提供者，不管是对象还是逻辑都可以。可以校验权限然后抛异常等。
+    比如 demo：
+        @app.get("/manager")
+        async def manager_route(user=Depends(role_required("manager"))):
+
+
+一点感触
+    装饰器，不好好增强函数，而要去注册用
+    DI 不仅仅DI，还要做业务逻辑比瑞校验权限
+
+工程上：
+    比如权限校验
+
+        会有一个专门的module，权限定义 → auth 模块集中维护，使用的时候import → 从 auth 模块__init__.py统一导出
+    __init__.py 决定一个目录是不是“包”，同时可以控制“这个包对外暴露什么接口”。
 
 
 
@@ -297,6 +311,26 @@ fastapi vs spring
     Explicit is better than implicit.
 
     就没有
+
+多进程
+    todo
+
+
+db pool：
+    不会有并发问题，多个协程不会有问题，因为每个协程是不同的函数，是不同的生成器对象。
+
+
+垃圾收集器
+    todo
+
+大模型 参数 量级
+    7b
+
+
+
+那对于pool来讲的话
+
+
     
 英文自我介绍
 
@@ -306,3 +340,31 @@ fastapi vs spring
 
 
 为啥想转python
+
+
+
+chrunking：
+    
+    遇到的问题：
+
+
+todo
+    
+    召回率
+
+chunk：
+    nltk 拆分为
+    process_large_sentence
+        一句句append，如果append> 512, 放入list，继续新建。句子内部用tokenizer，句子之间也有
+    merge_sentence
+        把小句子合并为长句子，句子间的tokenizer做拼接，也就是成为chunk
+    批量embeding
+        调用模型生成 向量，并且拼接向量
+    顺序向量余玄相似度小于多少，那就聚合为cluster
+    遍历cluster，如果没超过maxtoken，append chunk，如果cluster太大，那就继续调高 threshold +step，重新聚合，然后再append结果。
+
+    cluster怎么表示，其实就是 前面embeding后的元素索引[[0,1][2,3,4]]
+    最后拿着cluster去拼 chunk
+    
+    
+    
