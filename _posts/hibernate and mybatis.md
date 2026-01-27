@@ -106,7 +106,7 @@ using index
 
 explain分三层：
     走不走索引（type，key，key_len）：
-        type：扫描策略
+        type：扫描策略，走索引还是全表扫描。
         key： 索引名字
         key_len: 用到索引多少字节。
     扫多少（raws，filtered）：
@@ -163,8 +163,8 @@ spring：
     @Autowired、按类型（Type）自动注入 Bean
     @Inject、等同于@Autowired + @Qualifier
     @Resource 先名字再类型
-    @Configuration
-    @
+    @Configuration bean 工厂
+    @Component @Component 表示“这是一个要被容器管理的业务对象”； 作用在类上，构造spring构造，但@COnfiguration自己就灵活的多了。
 spring boot：
     1. 自动装配：
         springboot有spring-boot-autoconfigure 负责检测classpath jar包，做自动装配
@@ -205,6 +205,70 @@ spring boot：
         它不负责线程创建，不负责请求接受，只负责如何处理数据。
     
     只有一个DispatcherServlet，但是被多个线程同时调用，但因为不存状态，所以多线程没关系。       
+    给我个支点，我可以撬动地球，
+     ApplicationContext（类似那个进程，所有东西都存里面）
+     1.beanDefinition
+     2.Bean Initialization
+    3.tomcat.addServlet("dispatcherServlet", dispatcherServletInstance);
+
+
+
+    5.springboot加载流程
+        两部分：
+            容器构建对象 infra
+            应用运行对象 app
+            BeanFactoryPostProcessor是分水岭
+        启动
+            ├─ ApplicationContextInitializer
+            ├─ BeanDefinitionRegistryPostProcessor
+            │   └─ ConfigurationClassPostProcessor
+            │       ├─ @Configuration
+            │       ├─ @Import
+            │       │   └─ AutoConfigurationImportSelector
+            │       ├─ @ComponentScan
+            │       └─ @Bean
+            ├─ BeanFactoryPostProcessor 占位符，还是bean元信息，可以拦一手。
+            ├─ BeanPostProcessor
+            │   ├─ @Autowired
+            │   ├─ AOP
+            │   └─ 生命周期
+            └─ ApplicationReady
+        
+        ConfigurationClassPostProcessor 这个是正经new出来的对象，处理spring 框架接口的bean的逻辑
+
+        bean创建：
+            【容器启动阶段】
+            1. 读取配置
+            2. 解析注解 / XML
+            3. 注册 BeanDefinition
+            4. BeanFactoryPostProcessor
+
+            ------------------------------------------------
+            5. 实例化 Bean（new）
+            6. 属性填充（依赖注入） 类字段 autoware
+            7. Aware 接口回调  容器资源注入，大多数对象为容器对象而不是bean，所以要织入方式
+                - BeanNameAware
+                - BeanFactoryAware
+                - ApplicationContextAware
+            8. BeanPostProcessor#postProcessBeforeInitialization
+            9. 初始化。     
+                - @PostConstruct
+                - InitializingBean.afterPropertiesSet()
+                - init-method
+            10. BeanPostProcessor#postProcessAfterInitialization
+                - AOP 代理在这里产生
+
+            summary： 其实就4类资源，1.new的时候初始化的。2.autoware 属性。3.容器资源对象。4.bean 初始化。5 代理。 
+            BFPP 之前就是一些Infra的东西，配置文件，还有自动配置的实现而已， BeanDefinition。
+            BeanFactoryPostProcessor 其实就是对BeanDefinition。拦了一手。方式就是springboot会提前实例化这些类型的bean
+            ConfigurationClassPostProcessor 其实也是提前注入的bean，
+
+            所以spring boot只是提供接口，然后在固定的生命周期去发现和调用，至于做什么，怎么做，完全由实现类去决定执行
+
+    java类加载
+
+
+   
 
     8.tomcat， 责任链，dispatch servlet 工作流程
         客户端 HTTP 请求
@@ -243,12 +307,163 @@ spring cloud：
     熔断、限流、降级：
 
     网关：
+docker：
+
 
 k8s：
     ingress：
         有ingress定义
         还有ingress controller， 比如 nginx
+
     service：
-        service只是一个规则，真正执行流量转发的，是 kube-proxy，
+        clusterIp： Service 的虚拟 IP 地址
+        service只是一个规则，真正执行流量转发的，是 kube-proxy
+        kube-proxy是啥：是linux 内部内核层根据规则网络转发的一个东东。
+    endpoint：
+        Endpoint Controller 监听pod，service selector，生成endpoints对象。
+        kube-proxy消费 endpoints，比如：
+            根据一个servic selector找到两个pod，那这两个pod的ip pod，就是endpoint
+    pod：
+        里面可以有多个container，或者说进程。
+        资源都是共享的。多个进程共同组成一个application。
+        资源是共享的，类似一个小主机。
+    configmap：
+        deployment消费为env
+        应用里面也有改的
+
+    deployment：
+        管理pod用的，ReplicaSet Controller会监控pod数量够不够。
+        containers： 定义了image name，也可以加上command ：[ sleep]覆盖dockerimage里面的cmd 然后我就可以进去做事情了。
+        [一个docker 不是只能有一个进程么，但是其实是一个主进程，可以有多个字进程]
+
+        kubectl apply -f 是修改deployment，而delte + create是销毁deployment再创建（服务中断风险）。
 
 
+    pv/pvc：
+        pvc是存储的请求声明
+        pv是实际的存储服务
+            其实就是生产和消费，pv定义资源， pvc 消费资源
+
+    如何把多个service弄成一个service
+        ingress
+
+    如果一个service的一个selector 对应的pod有多个并且不同端口呢？
+        那对不起，serivce的target port必须被pod保持一致，才行。
+
+
+    限流：
+        Ingress限流：
+            annotations:
+                nginx.ingress.kubernetes.io/limit-connections: "10"     # 并发连接数
+                nginx.ingress.kubernetes.io/limit-rps: "5"              # 每秒请求数
+        Linked/Istio：
+            在k8s层在加个proxy，实现流量监控和管理。
+
+        app层：
+            令牌桶：redis 的ratelimiter 或者guava 单个jvm本地的，类似本地缓存
+        
+    降级：
+        应该是app层去做，根据业务情况做
+
+    Liveness → “死了就重启”
+    Readiness → “还没准备好就别给流量”
+
+            
+
+helm：
+    chart： 安装包
+    release： 安装一次就是一个release
+        version：每次安装都有一个版本。可以回滚
+    values： 改deployment/image/ingress/service参数。
+
+    helm sleep 怎么操作：
+        改values.yaml 或者命令行install的时候--set 覆盖
+        helm upgread（历史可保留）
+        helm uninstall + install 历史没来
+
+    chart例子：
+    mychart/
+    ├── templates/      # Kubernetes 资源模板（带变量）
+    ├── values.yaml     # 参数（你真正常改的地方）
+    └── Chart.yaml      # 元信息（名字、版本）
+
+
+    修改image 步骤：
+        helm show values your-chart
+
+        helm upgrade --install my-app ./your-chart \
+        --set image.repository=myrepo/myapp \
+        --set image.tag=v2.0.1
+
+
+
+分库分表：
+    ShardingSphere-Proxy：
+
+        SQL 路由
+
+        分片规则
+
+        结果合并
+
+        部分跨库查询
+
+aws
+
+
+java
+
+python
+
+
+
+
+
+
+
+mysql 的锁 哈希表 进化历史。concurrenthashmap关系
+
+
+
+
+auth service
+    authenticator 做authticate （process map 根据type拿token processor 处理 authenticate）
+        tokenProcessor（pre post authenticate） auth cache
+    preAuthProcessors  List processors ，一个processor有所有的process 的map， authtication前依次调用 preprocessor
+    postAuthProcessors。List processors ，一个所有的process 的map， authtication前依次调用 postprocessor
+
+
+
+    process是都跑的，但是authentic 是根据   tokentype 一个来跑的
+
+
+authicateapi。 有 abstract + api + smax
+
+
+组合模式：执行者从执行的维度分为类，业务层从 功能的角度去组合从分类，第一步pre，第auth，第三部post
+
+
+
+线程池：
+
+
+SQL：
+    join：
+        select A.xx B.xx from table_A A inner join table_B B on A.xx=B.xx
+        left join 
+        right join
+        full outer join
+    
+    GROUP BY + HAVING
+        SELECT user_id, COUNT(*) cnt
+        FROM order
+        GROUP BY user_id
+        HAVING COUNT(*) > 5;
+    DISTINCT：去重
+        SELECT COUNT(DISTINCT user_id) FROM order;
+    LIMIT / OFFSET：
+        SELECT * FROM user LIMIT 10 OFFSET 10;
+
+    
+
+    
